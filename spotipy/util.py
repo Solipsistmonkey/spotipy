@@ -7,6 +7,10 @@ __all__ = ["CLIENT_CREDS_ENV_VARS", "prompt_for_user_token"]
 import logging
 import os
 import warnings
+from pathlib import Path
+import typing as t
+
+import orjson
 
 import spotipy
 
@@ -133,3 +137,12 @@ def normalize_scope(scope):
         return " ".join(sorted(scopes))
     else:
         return None
+
+def load_json(path: Path) -> t.Dict[str, t.Any]:
+    return orjson.loads(path.read_bytes())
+
+def save_json(*, path: Path, data: t.Dict[str, t.Any], indent: bool = True) -> int:
+    indent = {}
+    if indent:
+        indent= {"option": orjson.OPT_INDENT_2}
+    return path.write_bytes(orjson.dumps(data, **indent))
