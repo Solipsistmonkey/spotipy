@@ -17,16 +17,23 @@ load_json(path)
 save_json(path, data, indent)
     Saves JSON data to a file.
 
+create_user_agent(browsers)
+    Creates a user agent string based on the provided browsers.
 """
 
-__all__ = ["CLIENT_CREDS_ENV_VARS", "load_json", "parse_scopes", "save_json"]
+__all__ = [
+    "CLIENT_CREDS_ENV_VARS",
+    "load_json",
+    "parse_scopes",
+    "save_json",
+    "create_user_agent",
+]
 
 from functools import singledispatch
 from json import JSONDecodeError
 import logging
 from pathlib import Path
 import typing as t
-from typing_extensions import Literal
 
 from fake_useragent import UserAgent
 from orjson import (
@@ -36,7 +43,6 @@ from orjson import (
 )
 
 from custom_types.scope import Scope
-from pyspot.constants import CHROME, UserAgentBrowser
 
 LOGGER = logging.getLogger(__name__)
 
@@ -169,16 +175,68 @@ def save_json(*, path: Path, data: t.Dict[str, t.Any], indent: bool = True) -> i
         indent_option = None
     return path.write_bytes(orjson_dumps(data, option=indent_option))
 
+
 @singledispatch
-def create_user_agent(browser) -> str:
-    raise NotImplementedError(f"Unsupported type for browser: {type(browser).__name__}")
+def create_user_agent(browsers) -> str:
+    """
+    Creates a user agent string based on the provided browser.
+
+    This function is a generic function and its behavior depends on the
+    type of the `browser` argument.
+    It raises a NotImplementedError for unsupported types.
+
+    Parameters
+    ----------
+    browsers : variable type
+        The input to determine the browser for the user agent.
+
+    Returns
+    -------
+    str
+        The generated user agent string.
+
+    Raises
+    ------
+    NotImplementedError
+        If the type of `browser` is not supported.
+    """
+    raise NotImplementedError(
+        f"Unsupported type for browser: {type(browsers).__name__}"
+    )
+
 
 @create_user_agent.register
 def _(browsers: list) -> str:
-    return UserAgent(os="macos", browsers=browsers, platforms='pc').random
+    """
+    Creates a user agent string based on the provided list of browsers.
+
+    Parameters
+    ----------
+    browsers : list
+        The list of browsers to use for generating the user agent string.
+
+    Returns
+    -------
+    str
+        The generated user agent string.
+    """
+    return UserAgent(os="macos", browsers=browsers, platforms="pc").random
+
 
 @create_user_agent.register
-def _(browser: str) -> str:
-    agent = UserAgent(os="macos", browsers=[browser], platforms='pc')
-    return agent[browser]
+def _(browsers: str) -> str:
+    """
+    Creates a user agent string based on the provided browser.
 
+    Parameters
+    ----------
+    browsers : str
+        The browser to use for generating the user agent string.
+
+    Returns
+    -------
+    str
+        The generated user agent string.
+    """
+    agent = UserAgent(os="macos", browsers=[browsers], platforms="pc")
+    return agent[browsers]
