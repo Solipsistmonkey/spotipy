@@ -19,21 +19,33 @@ save_json(path, data, indent)
 
 create_user_agent(browsers)
     Creates a user agent string based on the provided browsers.
+
+generate_code_verifier(length)
+    Generates a code verifier for OAuth 2.0 PKCE.
+
+generate_code_challenge(verifier)
+    Generates a code challenge derived from the code verifier.
 """
 
 __all__ = [
     "CLIENT_CREDS_ENV_VARS",
+    "create_user_agent",
+    "generate_code_challenge",
+    "generate_code_verifier",
     "load_json",
     "parse_scopes",
     "save_json",
-    "create_user_agent",
 ]
 
+import random
+from base64 import urlsafe_b64encode
 from functools import singledispatch
+from hashlib import sha256
 from json import JSONDecodeError
 import logging
 from pathlib import Path
 import typing as t
+from string import ascii_letters, digits
 
 from fake_useragent import UserAgent
 from orjson import (
@@ -240,3 +252,44 @@ def _(browsers: str) -> str:
     """
     agent = UserAgent(os="macos", browsers=[browsers], platforms="pc")
     return agent[browsers]
+
+def generate_code_verifier(length=128) -> str:
+    """
+    Generates a code verifier for OAuth 2.0 PKCE.
+
+    The code verifier is a cryptographically random string using the
+    characters A-Z, a-z, 0-9, and the punctuation characters -._~ (hyphen,
+    period, underscore, and tilde), between 43 and 128 characters long.
+
+    Parameters
+    ----------
+    length : int, optional
+        The length of the code verifier, by default 128
+
+    Returns
+    -------
+    str
+        The generated code verifier.
+    """
+    return "".join(random.choices(ascii_letters + digits, k=length))
+
+
+def generate_code_challenge(verifier) -> str:
+    """
+    Generates a code challenge derived from the code verifier.
+
+    This is done by hashing the code verifier with SHA-256, then encoding
+    the hash value in URL-safe base64, and removing any padding.
+
+    Parameters
+    ----------
+    verifier : str
+        The code verifier.
+
+    Returns
+    -------
+    str
+        The generated code challenge.
+    """
+    digest = sha256(verifier.encode("utf-8")).digest()
+    return urlsafe_b64encode(digest).rstrip(b"=").decode("utf-8")
